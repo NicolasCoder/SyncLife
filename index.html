@@ -109,15 +109,13 @@
         }
     </style>
     
-    <!-- 🚫 SERVICE WORKER DESABILITADO TEMPORARIAMENTE -->
+    <!-- ✅ SERVICE WORKER ATIVADO -->
     <script>
-        // Desregistra qualquer SW antigo que esteja ativo
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.getRegistrations().then(function(registrations) {
-                for(let registration of registrations) {
-                    registration.unregister();
-                    console.log('✅ Service Worker antigo removido');
-                }
+        if ('serviceWorker' in navigator && window.location.protocol.startsWith('http')) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(reg => console.log('✅ SW registrado:', reg.scope))
+                    .catch(err => console.error('❌ SW erro:', err));
             });
         }
     </script>
