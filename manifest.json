@@ -1,15 +1,21 @@
+
 {
   "short_name": "SyncLife",
   "name": "SyncLife Personal Dashboard",
   "icons": [
     {
-      "src": "/logo.png",
-      "type": "image/png",
+      "src": "/logo.svg",
+      "type": "image/svg+xml",
+      "sizes": "any"
+    },
+    {
+      "src": "/logo.svg",
+      "type": "image/svg+xml",
       "sizes": "192x192"
     },
     {
-      "src": "/logo.png",
-      "type": "image/png",
+      "src": "/logo.svg",
+      "type": "image/svg+xml",
       "sizes": "512x512"
     }
   ],
