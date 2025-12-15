@@ -8,6 +8,13 @@ self.addEventListener('activate', (e) => {
 });
 
 self.addEventListener('fetch', (e) => {
-  // Pass through requests directly to network
-  e.respondWith(fetch(e.request));
+  // Only handle http/https requests to avoid errors with chrome-extension:// or other schemes
+  if (!e.request.url.startsWith('http')) return;
+  
+  // Pass through requests directly to network with basic error handling
+  e.respondWith(
+    fetch(e.request).catch(() => {
+        return new Response("Offline", { status: 503, statusText: "Offline" });
+    })
+  );
 });

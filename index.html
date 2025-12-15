@@ -10,7 +10,7 @@
     <link rel="manifest" href="/manifest.json" />
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/16541/16541906.png">
     
-    <!-- Tailwind CSS -->
+    <!-- Tailwind CSS (CDN para prototipagem rápida, conforme setup atual) -->
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     
     <!-- Tailwind Config -->
@@ -113,26 +113,26 @@
             'opsz' 24
         }
     </style>
-<!-- Removed importmap to prevent conflict with local bundlers -->
-<script>
-    if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-            navigator.serviceWorker.register('/sw.js')
-                .then(reg => console.log('SW registered'))
-                .catch(err => console.log('SW failed', err));
-        });
-    }
-</script>
+    
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(reg => console.log('SW registered'))
+                    .catch(err => console.log('SW failed', err));
+            });
+        }
+    </script>
 <script type="importmap">
 {
   "imports": {
     "react": "https://esm.sh/react@^19.2.3",
     "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
     "react/": "https://esm.sh/react@^19.2.3/",
-    "@google/genai": "https://esm.sh/@google/genai@^1.33.0",
-    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@^2.87.1",
     "react-router-dom": "https://esm.sh/react-router-dom@^7.10.1",
-    "recharts": "https://esm.sh/recharts@^3.5.1"
+    "@google/genai": "https://esm.sh/@google/genai@^1.33.0",
+    "recharts": "https://esm.sh/recharts@^3.5.1",
+    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@^2.87.1"
   }
 }
 </script>
