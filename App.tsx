@@ -16,9 +16,28 @@ const GlobalModalHandler: React.FC = () => {
   return <ActionModal isOpen={isModalOpen} onClose={closeModal} type={modalType} />;
 };
 
+// Inline styles for high reliability
 const LoadingScreen = () => (
-    <div className="min-h-screen bg-[#101722] flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+    <div style={{
+        minHeight: '100vh',
+        backgroundColor: '#101722',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        color: 'white',
+        flexDirection: 'col'
+    }} className="min-h-screen bg-[#101722] flex flex-col items-center justify-center text-white">
+        <div style={{
+            width: '32px',
+            height: '32px',
+            border: '4px solid #3484f4',
+            borderTopColor: 'transparent',
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite',
+            marginBottom: '16px'
+        }} className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4"></div>
+        <span style={{fontSize: '14px', opacity: 0.7}}>Carregando...</span>
+        <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
     </div>
 );
 

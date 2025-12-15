@@ -74,8 +74,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // --- AUTH & INITIAL FETCH ---
   useEffect(() => {
+    let mounted = true;
+
+    // Safety Timeout: Force stop loading after 3 seconds if Supabase hangs
+    const safetyTimer = setTimeout(() => {
+        if (mounted && loading) {
+            console.warn("Loading timed out - forcing app render");
+            setLoading(false);
+        }
+    }, 3000);
+
     // Check active session
     supabase.auth.getSession().then(({ data: { session }, error }) => {
+      if (!mounted) return;
       if (error) {
         console.error("Erro ao verificar sessão:", error);
         setLoading(false);
@@ -90,12 +101,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           setLoading(false);
       }
     }).catch(err => {
+        if (!mounted) return;
         console.error("Erro crítico na inicialização do Auth:", err);
         setLoading(false);
+    }).finally(() => {
+        clearTimeout(safetyTimer);
     });
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!mounted) return;
       setSession(session);
       if (session) {
           loadUserProfile(session);
@@ -109,7 +124,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+        mounted = false;
+        clearTimeout(safetyTimer);
+        subscription.unsubscribe();
+    };
   }, []);
 
   const loadUserProfile = (session: Session) => {
@@ -121,9 +140,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const fetchData = useCallback(async () => {
-    // If not authenticated (and not waiting for init), stop.
-    // However, if we are in the init phase, session might be set.
-    
     try {
         const currentSession = (await supabase.auth.getSession()).data.session;
         if (!currentSession) {
@@ -185,7 +201,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } catch (e) {
         console.error("Exceção ao carregar dados:", e);
     } finally {
-        // SEMPRE remover o loading, mesmo se der erro
         setLoading(false);
     }
   }, []);

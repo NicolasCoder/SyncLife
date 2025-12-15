@@ -58,6 +58,8 @@
         body {
             font-family: 'Inter', sans-serif;
             overscroll-behavior-y: none; /* Prevent pull-to-refresh on mobile app feel */
+            background-color: #101722; /* Ensure background is dark even if Tailwind fails */
+            color: white;
         }
         /* Custom scrollbar */
         ::-webkit-scrollbar {
@@ -111,20 +113,7 @@
             'opsz' 24
         }
     </style>
-<script type="importmap">
-{
-  "imports": {
-    "react": "https://esm.sh/react@18.2.0",
-    "react/": "https://esm.sh/react@18.2.0/",
-    "react-dom": "https://esm.sh/react-dom@18.2.0",
-    "react-dom/": "https://esm.sh/react-dom@18.2.0/",
-    "react-router-dom": "https://esm.sh/react-router-dom@6.22.3?deps=react@18.2.0,react-dom@18.2.0",
-    "recharts": "https://esm.sh/recharts@2.12.7?deps=react@18.2.0,react-dom@18.2.0",
-    "@google/genai": "https://esm.sh/@google/genai@^1.33.0",
-    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2.39.7"
-  }
-}
-</script>
+<!-- Removed importmap to prevent conflict with local bundlers -->
 <script>
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
@@ -133,6 +122,19 @@
                 .catch(err => console.log('SW failed', err));
         });
     }
+</script>
+<script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@^19.2.3",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "@google/genai": "https://esm.sh/@google/genai@^1.33.0",
+    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@^2.87.1",
+    "react-router-dom": "https://esm.sh/react-router-dom@^7.10.1",
+    "recharts": "https://esm.sh/recharts@^3.5.1"
+  }
+}
 </script>
 </head>
 <body class="bg-background-light dark:bg-background-dark text-[#111418] dark:text-white overflow-hidden min-h-screen selection:bg-primary/30">
