@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Icon from './Icon';
 import { useAppContext } from '../context/AppContext';
 
@@ -12,6 +12,9 @@ interface ActionModalProps {
 const ActionModal: React.FC<ActionModalProps> = ({ isOpen, onClose, type = 'transaction' }) => {
   const { addTransaction, addTask, addProject, addCard, projects, cards } = useAppContext();
   const [activeTab, setActiveTab] = useState<'transaction' | 'task' | 'project' | 'card'>(type);
+  
+  // Refs
+  const logoInputRef = useRef<HTMLInputElement>(null);
   
   useEffect(() => {
     setActiveTab(type);
@@ -297,6 +300,30 @@ const ActionModal: React.FC<ActionModalProps> = ({ isOpen, onClose, type = 'tran
                 <div>
                 <label className="block text-xs font-medium text-slate-400 mb-1">Nome do Projeto</label>
                 <input type="text" value={projName} onChange={(e) => setProjName(e.target.value)} className="w-full bg-[#111722] border border-white/10 rounded-xl px-4 py-3 text-white outline-none focus:border-primary" />
+                </div>
+                
+                <div>
+                    <label className="block text-xs font-medium text-slate-400 mb-1">Ícone / Logo</label>
+                    <div className="flex items-center gap-4">
+                        <div 
+                            className="w-12 h-12 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center cursor-pointer hover:bg-white/10 transition-colors overflow-hidden relative group"
+                            onClick={() => logoInputRef.current?.click()}
+                        >
+                            <img src={projLogo} alt="Logo" className="w-8 h-8 object-contain opacity-80 group-hover:opacity-100" />
+                            <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                <Icon name="upload" className="text-white text-xs" />
+                            </div>
+                        </div>
+                        <span className="text-xs text-slate-500">Clique para alterar a imagem</span>
+                        
+                        <input 
+                            type="file" 
+                            ref={logoInputRef}
+                            className="hidden"
+                            accept="image/*"
+                            onChange={handleFileUpload}
+                        />
+                    </div>
                 </div>
             </div>
           )}

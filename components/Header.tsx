@@ -24,10 +24,12 @@ const Header: React.FC<HeaderProps> = ({ title = "SyncLife", subtitle }) => {
         <div className="flex items-center gap-3">
             {!subtitle ? (
                 <>
-                    <div className="size-8 rounded-full bg-gradient-to-br from-primary to-blue-600 flex items-center justify-center text-white shadow-lg shadow-primary/20">
-                    <Icon name="bolt" className="text-lg" />
-                    </div>
-                    <span className="text-white/80 font-medium text-sm tracking-wide">{title}</span>
+                    <img 
+                        src="https://cdn-icons-png.flaticon.com/512/4202/4202839.png" 
+                        alt="Logo" 
+                        className="w-8 h-8 object-contain drop-shadow-lg"
+                    />
+                    <span className="text-white/90 font-semibold text-base tracking-wide">{title}</span>
                 </>
             ) : (
                 <div className="flex flex-col">

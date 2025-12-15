@@ -12,7 +12,8 @@ interface ChatMessage {
     id: string;
     role: 'user' | 'model' | 'system';
     text: string;
-    isAction?: boolean; // If true, styles as a system notification (e.g., "Transaction Saved")
+    image?: string; // Base64 full string (data:image...) for display
+    isAction?: boolean; 
 }
 
 // --- INIT GEMINI ---
@@ -61,6 +62,7 @@ const Home: React.FC = () => {
     // Command Bar State
     const [mainInput, setMainInput] = useState('');
     const [showAttachments, setShowAttachments] = useState(false);
+    const [activeAttachment, setActiveAttachment] = useState<string | null>(null); // Base64 for display
 
     // Chat State
     const [isChatOpen, setIsChatOpen] = useState(false);
@@ -72,6 +74,7 @@ const Home: React.FC = () => {
     const chatSessionRef = useRef<Chat | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const chatInputRef = useRef<HTMLInputElement>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     // Auto-scroll to bottom of chat
     useEffect(() => {
@@ -86,8 +89,9 @@ const Home: React.FC = () => {
                 initChat();
             }
         } else {
-            chatSessionRef.current = null;
-            setMessages([]);
+            // Optional: reset chat on close? Keeping it for now.
+            // chatSessionRef.current = null;
+            // setMessages([]);
         }
     }, [isChatOpen]);
 
@@ -199,7 +203,7 @@ const Home: React.FC = () => {
 
     const initChat = () => {
         if (!ai) {
-            addMessage('system', 'Erro: API Key não configurada.');
+            // addMessage('system', 'Erro: API Key não configurada.');
             return;
         }
 
@@ -223,18 +227,19 @@ const Home: React.FC = () => {
                 Tarefas: ${tasksSummary}
                 Transações: ${transSummary}
                 
-                Responda de forma direta. Use tools para ações.`,
+                Responda de forma direta. Use tools para ações. Se o usuário enviar uma imagem, analise-a.`,
                 tools: [{ functionDeclarations: [createTransactionTool, deleteTransactionTool, createTaskTool, updateTaskTool] }],
             }
         });
     };
 
-    const addMessage = (role: 'user' | 'model' | 'system', text: string, isAction = false) => {
+    const addMessage = (role: 'user' | 'model' | 'system', text: string, isAction = false, image?: string) => {
         setMessages(prev => [...prev, {
             id: Math.random().toString(36).substring(7),
             role,
             text,
-            isAction
+            isAction,
+            image
         }]);
     };
 
@@ -242,6 +247,7 @@ const Home: React.FC = () => {
         let response = initialResponse;
         let functionCalls = response.functionCalls;
 
+        // Loop para lidar com chamadas de tool múltiplas/sequenciais
         while (functionCalls && functionCalls.length > 0) {
             const toolOutputs: Part[] = [];
             
@@ -345,17 +351,42 @@ const Home: React.FC = () => {
         }
     };
 
-    const processMessage = async (text: string) => {
-        if (!text.trim()) return;
-        addMessage('user', text);
+    const processMessage = async (text: string, imageBase64?: string | null) => {
+        if (!text.trim() && !imageBase64) return;
+        
+        // Display user message
+        addMessage('user', text, false, imageBase64 || undefined);
         setIsTyping(true);
+
+        // Clear inputs immediately
+        setChatInput('');
+        setActiveAttachment(null); 
 
         try {
             if (!chatSessionRef.current) initChat();
             const session = chatSessionRef.current;
             
             if (session) {
-                let response = await session.sendMessage({ message: text });
+                let messagePayload: any = [];
+                
+                // Add image if present
+                if (imageBase64) {
+                    // Remove data url prefix for API
+                    const rawBase64 = imageBase64.split(',')[1];
+                    messagePayload.push({
+                        inlineData: {
+                            mimeType: "image/jpeg", // Assuming jpeg/png mostly
+                            data: rawBase64
+                        }
+                    });
+                }
+
+                // Add text
+                if (text) {
+                    messagePayload.push({ text: text });
+                }
+
+                let response = await session.sendMessage({ message: messagePayload });
                 await handleModelResponse(session, response);
             } else {
                 addMessage('system', "Erro: Chat não inicializado.");
@@ -369,33 +400,51 @@ const Home: React.FC = () => {
         }
     };
 
-    const openChatWithPrompt = (prompt: string) => {
-        setIsChatOpen(true);
-        setTimeout(() => processMessage(prompt), 100);
-    };
-
-    const handleQuickAction = (item: string) => {
-        const keyword = item.split(' ')[1];
-        openChatWithPrompt(`Quero registrar algo sobre ${keyword}`);
+    // --- FILE HANDLING ---
+    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setActiveAttachment(reader.result as string);
+                setShowAttachments(false);
+                // If selected via main bar, open chat immediately to show it
+                if (!isChatOpen) {
+                    setIsChatOpen(true);
+                }
+            };
+            reader.readAsDataURL(file);
+        }
     };
 
     const handleMainBarSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!mainInput.trim()) return;
+        if (!mainInput.trim() && !activeAttachment) return;
         setIsChatOpen(true);
-        setTimeout(() => processMessage(mainInput), 100);
-        setMainInput('');
+        // Small delay to allow modal render
+        setTimeout(() => {
+            processMessage(mainInput, activeAttachment);
+            setMainInput('');
+        }, 100);
     };
 
     const handleChatSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        processMessage(chatInput);
-        setChatInput('');
+        processMessage(chatInput, activeAttachment);
     };
 
     return (
         <div className="bg-background-light dark:bg-background-dark text-[#111418] dark:text-white overflow-x-hidden min-h-screen flex flex-col relative w-full">
             
+            {/* Hidden File Input for Attachments */}
+            <input 
+                type="file" 
+                ref={fileInputRef} 
+                className="hidden" 
+                accept="image/*"
+                onChange={handleFileSelect}
+            />
+
             <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
                 <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/10 rounded-full blur-[120px]"></div>
                 <div className="absolute bottom-[-10%] right-[-10%] w-[30%] h-[30%] bg-blue-600/10 rounded-full blur-[100px]"></div>
@@ -412,17 +461,39 @@ const Home: React.FC = () => {
                         </div>
                         <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-hide bg-[#11161f]">
                             {messages.map((msg) => (
-                                <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                                    <div className={`max-w-[85%] px-4 py-3 rounded-2xl text-sm ${msg.role === 'user' ? 'bg-primary text-white' : 'bg-[#1e2736] text-slate-200'}`}>
-                                        {msg.text}
-                                    </div>
+                                <div key={msg.id} className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
+                                    {msg.image && (
+                                        <img src={msg.image} alt="Upload" className="max-w-[200px] rounded-xl mb-2 border border-white/10" />
+                                    )}
+                                    {msg.text && (
+                                        <div className={`max-w-[85%] px-4 py-3 rounded-2xl text-sm ${msg.role === 'user' ? 'bg-primary text-white' : 'bg-[#1e2736] text-slate-200'}`}>
+                                            {msg.text}
+                                        </div>
+                                    )}
                                 </div>
                             ))}
                             {isTyping && <div className="text-slate-500 text-xs ml-4">Digitando...</div>}
                             <div ref={messagesEndRef} />
                         </div>
+                        
+                        {/* Chat Input Area */}
                         <div className="p-4 bg-[#1a222e] border-t border-white/5 shrink-0">
+                            {/* Attachment Preview in Chat */}
+                            {activeAttachment && (
+                                <div className="flex items-center gap-2 mb-2 p-2 bg-white/5 rounded-lg w-fit">
+                                    <img src={activeAttachment} className="w-10 h-10 rounded object-cover" />
+                                    <span className="text-xs text-slate-300">Imagem anexada</span>
+                                    <button onClick={() => setActiveAttachment(null)} className="p-1 hover:text-red-400"><Icon name="close" className="text-sm"/></button>
+                                </div>
+                            )}
                             <form onSubmit={handleChatSubmit} className="relative flex items-center gap-2">
+                                <button 
+                                    type="button" 
+                                    onClick={() => fileInputRef.current?.click()} 
+                                    className="p-3 text-slate-400 hover:text-white bg-[#11161f] rounded-xl border border-white/10"
+                                >
+                                    <Icon name="add_photo_alternate" />
+                                </button>
                                 <input 
                                     ref={chatInputRef}
                                     type="text" 
@@ -431,7 +502,7 @@ const Home: React.FC = () => {
                                     placeholder="Digite sua mensagem..."
                                     className="flex-1 bg-[#11161f] border border-white/10 rounded-xl px-4 py-3 text-white outline-none text-sm"
                                 />
-                                <button type="submit" disabled={!chatInput.trim() || isTyping} className="p-3 bg-primary text-white rounded-xl">
+                                <button type="submit" disabled={(!chatInput.trim() && !activeAttachment) || isTyping} className="p-3 bg-primary text-white rounded-xl disabled:opacity-50">
                                     <Icon name="send" />
                                 </button>
                             </form>
@@ -450,22 +521,45 @@ const Home: React.FC = () => {
                     </div>
 
                     <div className="w-full max-w-lg mb-8 relative z-20 animate-fade-in-up">
+                        {/* Main Screen Attachment Menu */}
                         {showAttachments && (
-                            <div className="absolute bottom-full left-0 mb-3 ml-2 flex flex-col gap-2 p-2 rounded-2xl bg-[#1a222e] border border-white/10 shadow-2xl">
-                                {[{ icon: 'image', label: 'Galeria' }].map((opt, idx) => (
-                                    <button key={idx} className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-white/5 text-slate-300">
-                                        <Icon name={opt.icon} /> <span className="text-sm">{opt.label}</span>
-                                    </button>
-                                ))}
+                            <div className="absolute bottom-full left-0 mb-3 ml-2 flex flex-col gap-2 p-2 rounded-2xl bg-[#1a222e] border border-white/10 shadow-2xl animate-fade-in-up">
+                                <button 
+                                    onClick={() => fileInputRef.current?.click()}
+                                    className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-white/5 text-slate-300"
+                                >
+                                    <Icon name="image" /> <span className="text-sm">Galeria</span>
+                                </button>
                             </div>
                         )}
+                        
                         <form onSubmit={handleMainBarSubmit} className="relative group">
+                            {/* Main Bar Attachment Preview */}
+                            {activeAttachment && !isChatOpen && (
+                                <div className="absolute -top-16 left-0 flex items-center gap-2 p-2 bg-[#1a222e] border border-white/10 rounded-xl shadow-lg">
+                                    <img src={activeAttachment} className="w-10 h-10 rounded object-cover" />
+                                    <div className="flex flex-col">
+                                        <span className="text-[10px] text-slate-400">Pronto para enviar</span>
+                                        <span className="text-xs text-white font-bold">Imagem selecionada</span>
+                                    </div>
+                                    <button type="button" onClick={() => setActiveAttachment(null)} className="p-2 hover:text-red-400 ml-2"><Icon name="close" /></button>
+                                </div>
+                            )}
+                            
                             <div className="relative flex items-center bg-[#1a222e]/80 backdrop-blur-xl border border-white/10 rounded-2xl p-2 shadow-lg">
-                                <button type="button" onClick={() => setShowAttachments(!showAttachments)} className="p-3 text-slate-400 hover:text-white">
-                                    <Icon name="attach_file" />
+                                <button type="button" onClick={() => setShowAttachments(!showAttachments)} className="p-3 text-slate-400 hover:text-white transition-colors">
+                                    <Icon name={showAttachments ? "close" : "attach_file"} />
                                 </button>
-                                <input type="text" value={mainInput} onChange={(e) => setMainInput(e.target.value)} placeholder="Digite algo..." className="flex-1 bg-transparent border-none outline-none text-white px-2" />
-                                <button type="submit" className="p-3 bg-primary text-white rounded-xl"><Icon name="arrow_upward" /></button>
+                                <input 
+                                    type="text" 
+                                    value={mainInput} 
+                                    onChange={(e) => setMainInput(e.target.value)} 
+                                    placeholder="Digite algo ou envie uma foto..." 
+                                    className="flex-1 bg-transparent border-none outline-none text-white px-2 placeholder:text-slate-500" 
+                                />
+                                <button type="submit" className="p-3 bg-primary text-white rounded-xl shadow-lg shadow-primary/20">
+                                    <Icon name="arrow_upward" />
+                                </button>
                             </div>
                         </form>
                     </div>

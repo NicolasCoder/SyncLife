@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import Icon from './Icon';
 
@@ -50,8 +51,12 @@ const PWAInstallPrompt: React.FC = () => {
         <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary to-purple-500"></div>
 
         <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-blue-600 flex items-center justify-center shadow-lg">
-                <Icon name="bolt" className="text-white text-2xl" />
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#1a222e] to-[#242e3b] border border-white/10 flex items-center justify-center shadow-lg p-2">
+                <img 
+                    src="https://cdn-icons-png.flaticon.com/512/4202/4202839.png" 
+                    alt="App Icon" 
+                    className="w-full h-full object-contain"
+                />
             </div>
             <div>
                 <h3 className="text-white font-semibold text-sm">Instalar App</h3>

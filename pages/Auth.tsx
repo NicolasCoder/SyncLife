@@ -45,8 +45,12 @@ const Auth: React.FC = () => {
 
         <div className="w-full max-w-md bg-[#1a222e] border border-white/10 p-8 rounded-3xl shadow-2xl relative z-10 animate-fade-in-up">
             <div className="text-center mb-8">
-                <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-primary to-blue-400 mx-auto flex items-center justify-center shadow-lg shadow-primary/20 mb-4">
-                     <Icon name="bolt" className="text-3xl text-white" />
+                <div className="mx-auto mb-6 w-20 h-20 relative">
+                    <img 
+                        src="https://cdn-icons-png.flaticon.com/512/4202/4202839.png" 
+                        alt="SyncLife Logo" 
+                        className="w-full h-full object-contain drop-shadow-[0_0_15px_rgba(52,132,244,0.5)]"
+                    />
                 </div>
                 <h1 className="text-2xl font-bold text-white mb-2">Bem-vindo ao SyncLife</h1>
                 <p className="text-slate-400 text-sm">Organize suas finanças e tarefas com IA.</p>
