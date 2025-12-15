@@ -14,8 +14,16 @@ interface ChatMessage {
     isAction?: boolean; // If true, styles as a system notification (e.g., "Transaction Saved")
 }
 
-// Initialize Gemini
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// --- INIT GEMINI ---
+// Tenta ler VITE_API_KEY (Padrão Vite) ou API_KEY (Fallback)
+// O uso de 'as any' previne erros de TypeScript se os tipos do Vite não estiverem carregados
+const apiKey = (import.meta as any).env?.VITE_API_KEY || (import.meta as any).env?.API_KEY || '';
+
+if (!apiKey) {
+    console.error("ERRO CRÍTICO: API Key do Gemini não encontrada. Verifique as variáveis de ambiente (VITE_API_KEY).");
+}
+
+const ai = new GoogleGenAI({ apiKey: apiKey });
 
 // Helper for Base64 conversion
 const blobToBase64 = (blob: Blob): Promise<string> => {
