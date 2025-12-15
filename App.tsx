@@ -25,7 +25,7 @@ const LoadingScreen = () => (
         alignItems: 'center',
         justifyContent: 'center',
         color: 'white',
-        flexDirection: 'col'
+        flexDirection: 'column'
     }} className="min-h-screen bg-[#101722] flex flex-col items-center justify-center text-white">
         <div style={{
             width: '32px',
