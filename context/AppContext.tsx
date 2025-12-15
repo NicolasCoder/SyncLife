@@ -74,16 +74,27 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // --- AUTH & INITIAL FETCH ---
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    // Check active session
+    supabase.auth.getSession().then(({ data: { session }, error }) => {
+      if (error) {
+        console.error("Erro ao verificar sessão:", error);
+        setLoading(false);
+        return;
+      }
+      
       setSession(session);
       if (session) {
           loadUserProfile(session);
-          fetchData();
+          fetchData(); // Calls setLoading(false) internally
       } else {
           setLoading(false);
       }
+    }).catch(err => {
+        console.error("Erro crítico na inicialização do Auth:", err);
+        setLoading(false);
     });
 
+    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       if (session) {
@@ -110,65 +121,74 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const fetchData = useCallback(async () => {
-    // Note: We do NOT set loading(true) here to allow background refreshes 
-    // without flashing the loading screen.
-    // The initial useEffect handles the initial loading state.
+    // If not authenticated (and not waiting for init), stop.
+    // However, if we are in the init phase, session might be set.
     
-    if (!session && (await supabase.auth.getSession()).data.session === null) {
+    try {
+        const currentSession = (await supabase.auth.getSession()).data.session;
+        if (!currentSession) {
+            setLoading(false);
+            return;
+        }
+
+        // Fetch Projects
+        const { data: projData, error: projError } = await supabase.from('projects').select('*').order('created_at', { ascending: false });
+        if (projError) console.error("Erro projects:", projError);
+        if (projData) setProjects(projData);
+
+        // Fetch Cards
+        const { data: cardData, error: cardError } = await supabase.from('credit_cards').select('*').order('created_at', { ascending: false });
+        if (cardError) console.error("Erro cards:", cardError);
+        if (cardData) {
+            setCards(cardData.map((c: any) => ({
+                id: c.id,
+                name: c.name,
+                limitAmount: c.limit_amount,
+                dueDay: c.due_day,
+                closingDay: c.closing_day,
+                color: c.color,
+                lastDigits: c.last_digits
+            })));
+        }
+
+        // Fetch Transactions
+        const { data: transData, error: transError } = await supabase.from('transactions').select('*').order('date', { ascending: false });
+        if (transError) console.error("Erro transactions:", transError);
+        if (transData) {
+            const mappedTrans = transData.map((t: any) => ({
+                ...t,
+                paymentMethod: t.payment_method,
+                cardId: t.card_id,
+                isPaid: t.is_paid || false
+            }));
+            setTransactions(mappedTrans);
+        }
+
+        // Fetch Tasks
+        const { data: taskData, error: taskError } = await supabase
+            .from('tasks')
+            .select(`*, subtasks (*), task_logs (*)`)
+            .order('created_at', { ascending: false });
+        
+        if (taskError) console.error("Erro tasks:", taskError);
+        if (taskData) {
+            const mappedTasks = taskData.map((t: any) => ({
+                ...t,
+                projectId: t.project_id,
+                categoryIcon: t.category_icon,
+                subtasks: t.subtasks || [],
+                logs: t.task_logs || []
+            }));
+            setTasks(mappedTasks);
+        }
+
+    } catch (e) {
+        console.error("Exceção ao carregar dados:", e);
+    } finally {
+        // SEMPRE remover o loading, mesmo se der erro
         setLoading(false);
-        return;
     }
-
-    // Fetch Projects
-    const { data: projData } = await supabase.from('projects').select('*').order('created_at', { ascending: false });
-    if (projData) setProjects(projData);
-
-    // Fetch Cards
-    const { data: cardData } = await supabase.from('credit_cards').select('*').order('created_at', { ascending: false });
-    if (cardData) {
-        setCards(cardData.map((c: any) => ({
-            id: c.id,
-            name: c.name,
-            limitAmount: c.limit_amount,
-            dueDay: c.due_day,
-            closingDay: c.closing_day,
-            color: c.color,
-            lastDigits: c.last_digits
-        })));
-    }
-
-    // Fetch Transactions
-    const { data: transData } = await supabase.from('transactions').select('*').order('date', { ascending: false });
-    if (transData) {
-        const mappedTrans = transData.map((t: any) => ({
-            ...t,
-            paymentMethod: t.payment_method,
-            cardId: t.card_id,
-            isPaid: t.is_paid || false
-        }));
-        setTransactions(mappedTrans);
-        // We defer chart calc to useEffect dependency on transactions
-    }
-
-    // Fetch Tasks
-    const { data: taskData } = await supabase
-        .from('tasks')
-        .select(`*, subtasks (*), task_logs (*)`)
-        .order('created_at', { ascending: false });
-    
-    if (taskData) {
-        const mappedTasks = taskData.map((t: any) => ({
-            ...t,
-            projectId: t.project_id,
-            categoryIcon: t.category_icon,
-            subtasks: t.subtasks || [],
-            logs: t.task_logs || []
-        }));
-        setTasks(mappedTasks);
-    }
-    
-    setLoading(false);
-  }, [session]);
+  }, []);
 
   // --- CHART CALCULATION (REAL DATA) ---
   const calculateChartData = (data: Transaction[], period: '1S' | '1M' | '1A') => {

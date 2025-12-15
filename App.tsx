@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { MemoryRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AppProvider, useAppContext } from './context/AppContext';
 import Home from './pages/Home';
@@ -19,6 +19,7 @@ const GlobalModalHandler: React.FC = () => {
 const ProtectedRoutes: React.FC = () => {
     const { session, loading, refreshData } = useAppContext();
     const location = useLocation();
+    const [longLoading, setLongLoading] = useState(false);
 
     // Smart Refresh: Update data whenever the user navigates to a new page
     useEffect(() => {
@@ -27,8 +28,30 @@ const ProtectedRoutes: React.FC = () => {
         }
     }, [location.pathname]);
 
+    // Check if loading is taking too long (e.g. Supabase connection issues)
+    useEffect(() => {
+        if (loading) {
+            const timer = setTimeout(() => setLongLoading(true), 5000); // 5 seconds alert
+            return () => clearTimeout(timer);
+        } else {
+            setLongLoading(false);
+        }
+    }, [loading]);
+
     if (loading) {
-        return <div className="min-h-screen bg-[#101722] flex items-center justify-center text-white">Carregando...</div>;
+        return (
+            <div className="min-h-screen bg-[#101722] flex flex-col items-center justify-center text-white p-4 text-center">
+                <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4"></div>
+                <p className="animate-pulse">Carregando seus dados...</p>
+                {longLoading && (
+                    <div className="mt-4 p-4 bg-red-500/10 border border-red-500/20 rounded-xl max-w-xs">
+                        <p className="text-xs text-red-300">
+                            Isso está demorando mais que o normal. Verifique sua conexão ou se as chaves do Supabase estão configuradas corretamente no Netlify.
+                        </p>
+                    </div>
+                )}
+            </div>
+        );
     }
 
     if (!session) {
