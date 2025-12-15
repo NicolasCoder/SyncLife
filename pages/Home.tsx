@@ -1,11 +1,9 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import FloatingNav from '../components/FloatingNav';
 import Header from '../components/Header';
 import Icon from '../components/Icon';
 import { useAppContext } from '../context/AppContext';
 import { GoogleGenAI, Type, FunctionDeclaration, Chat, GenerateContentResponse, Part } from "@google/genai";
-import { getEnv } from '../utils/env';
 
 // --- TYPES ---
 interface ChatMessage {
@@ -17,7 +15,7 @@ interface ChatMessage {
 }
 
 // --- INIT GEMINI ---
-const apiKey = getEnv('VITE_API_KEY');
+const apiKey = process.env.API_KEY;
 
 let ai: GoogleGenAI | null = null;
 if (apiKey) {

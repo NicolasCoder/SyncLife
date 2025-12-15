@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { supabase } from '../supabaseClient';
 import Icon from '../components/Icon';
+import Logo from '../components/Logo'; // Importando o novo componente
 
 const Auth: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -9,7 +10,7 @@ const Auth: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
-
+  
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -45,12 +46,9 @@ const Auth: React.FC = () => {
 
         <div className="w-full max-w-md bg-[#1a222e] border border-white/10 p-8 rounded-3xl shadow-2xl relative z-10 animate-fade-in-up">
             <div className="text-center mb-8">
-                <div className="mx-auto mb-6 w-20 h-20 relative">
-                    <img 
-                        src="https://cdn-icons-png.flaticon.com/512/4202/4202839.png" 
-                        alt="SyncLife Logo" 
-                        className="w-full h-full object-contain drop-shadow-[0_0_15px_rgba(52,132,244,0.5)]"
-                    />
+                <div className="mx-auto mb-6 w-24 h-24 relative flex items-center justify-center">
+                    {/* Substituido img por Logo component */}
+                    <Logo className="w-full h-full drop-shadow-[0_0_20px_rgba(52,132,244,0.6)]" />
                 </div>
                 <h1 className="text-2xl font-bold text-white mb-2">Bem-vindo ao SyncLife</h1>
                 <p className="text-slate-400 text-sm">Organize suas finanças e tarefas com IA.</p>

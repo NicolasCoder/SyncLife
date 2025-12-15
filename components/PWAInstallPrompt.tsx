@@ -1,11 +1,12 @@
 
 import React, { useState, useEffect } from 'react';
 import Icon from './Icon';
+import Logo from './Logo'; // Importando novo componente
 
 const PWAInstallPrompt: React.FC = () => {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [isVisible, setIsVisible] = useState(false);
-
+  
   useEffect(() => {
     // 1. Check if already in standalone mode (installed)
     if (window.matchMedia('(display-mode: standalone)').matches) {
@@ -52,11 +53,7 @@ const PWAInstallPrompt: React.FC = () => {
 
         <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#1a222e] to-[#242e3b] border border-white/10 flex items-center justify-center shadow-lg p-2">
-                <img 
-                    src="https://cdn-icons-png.flaticon.com/512/4202/4202839.png" 
-                    alt="App Icon" 
-                    className="w-full h-full object-contain"
-                />
+                <Logo className="w-full h-full" />
             </div>
             <div>
                 <h3 className="text-white font-semibold text-sm">Instalar App</h3>

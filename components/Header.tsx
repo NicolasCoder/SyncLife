@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
 import Icon from './Icon';
+import Logo from './Logo'; // Importando o novo componente
 import { useAppContext } from '../context/AppContext';
 import ProfileModal from './ProfileModal';
 import NotificationsModal from './NotificationsModal';
@@ -24,11 +25,7 @@ const Header: React.FC<HeaderProps> = ({ title = "SyncLife", subtitle }) => {
         <div className="flex items-center gap-3">
             {!subtitle ? (
                 <>
-                    <img 
-                        src="https://cdn-icons-png.flaticon.com/512/4202/4202839.png" 
-                        alt="Logo" 
-                        className="w-8 h-8 object-contain drop-shadow-lg"
-                    />
+                    <Logo className="w-8 h-8 drop-shadow-lg" />
                     <span className="text-white/90 font-semibold text-base tracking-wide">{title}</span>
                 </>
             ) : (
