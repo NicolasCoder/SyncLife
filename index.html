@@ -57,8 +57,8 @@
     <style>
         body {
             font-family: 'Inter', sans-serif;
-            overscroll-behavior-y: none; /* Prevent pull-to-refresh on mobile app feel */
-            background-color: #101722; /* Ensure background is dark even if Tailwind fails */
+            overscroll-behavior-y: none;
+            background-color: #101722;
             color: white;
             -webkit-tap-highlight-color: transparent;
         }
@@ -109,13 +109,15 @@
         }
     </style>
     
+    <!-- 🚫 SERVICE WORKER DESABILITADO TEMPORARIAMENTE -->
     <script>
-        if ('serviceWorker' in navigator && window.location.protocol.startsWith('http')) {
-            window.addEventListener('load', () => {
-                // Registro robusto usando caminho relativo para evitar problemas de escopo/origem
-                navigator.serviceWorker.register('./sw.js')
-                    .then(reg => console.log('SW registrado com sucesso. Scope:', reg.scope))
-                    .catch(err => console.error('Erro ao registrar SW:', err));
+        // Desregistra qualquer SW antigo que esteja ativo
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                for(let registration of registrations) {
+                    registration.unregister();
+                    console.log('✅ Service Worker antigo removido');
+                }
             });
         }
     </script>
