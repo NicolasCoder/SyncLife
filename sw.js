@@ -1,25 +1,24 @@
-const CACHE_NAME = 'synclife-v1';
-const STATIC_ASSETS = [
+const CACHE_NAME = 'synclife-v2';
+
+// Cache apenas arquivos LOCAIS críticos na instalação.
+// Isso evita que falhas em CDNs externos bloqueiem a instalação do SW.
+const PRECACHE_ASSETS = [
   '/',
   '/index.html',
-  '/manifest.json',
-  'https://cdn.tailwindcss.com?plugins=forms,container-queries',
-  'https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600;700;800&display=swap',
-  'https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap'
+  '/manifest.json'
 ];
 
-// 1. Install Event: Cache core static assets
+// 1. Install: Cache apenas arquivos locais essenciais
 self.addEventListener('install', (event) => {
   self.skipWaiting();
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      // Tenta cachear, mas não falha se um arquivo externo der erro
-      return cache.addAll(STATIC_ASSETS).catch(err => console.warn('Falha ao cachear assets iniciais:', err));
-    })
+    caches.open(CACHE_NAME)
+      .then((cache) => cache.addAll(PRECACHE_ASSETS))
+      .catch((err) => console.error('SW Install Error:', err))
   );
 });
 
-// 2. Activate Event: Clean old caches
+// 2. Activate: Limpeza de caches antigos
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) => {
@@ -32,18 +31,22 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// 3. Fetch Event: Stale-While-Revalidate strategy
+// 3. Fetch: Estratégia Stale-While-Revalidate com Runtime Caching
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
-  // Ignore non-http requests (extensions, etc)
+  // Ignorar requests não-http (ex: chrome-extension)
   if (!url.protocol.startsWith('http')) return;
 
-  // Supabase & APIs: Network First, no cache fallback logic needed yet (handled by app)
-  if (url.hostname.includes('supabase.co') || url.hostname.includes('googleapis.com')) {
+  // Lógica de Exclusão/Inclusão de API
+  // Não cachear Supabase ou Gemini API (exceto Fonts do Google)
+  const isApi = url.hostname.includes('supabase.co') || 
+                (url.hostname.includes('googleapis.com') && !url.hostname.includes('fonts'));
+
+  // Se for API, apenas Network (com fallback JSON se offline)
+  if (isApi) {
     event.respondWith(
       fetch(event.request).catch(() => {
-        // Opcional: retornar JSON de erro se offline
         return new Response(JSON.stringify({ error: 'offline' }), { 
           headers: { 'Content-Type': 'application/json' } 
         });
@@ -52,28 +55,36 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Static Assets (Scripts, CSS, Images): Stale-While-Revalidate
+  // Para Assets (HTML, JS, CSS, Imagens, Fonts, Tailwind)
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
+      // Faz o fetch em background para atualizar o cache (Stale-While-Revalidate)
       const fetchPromise = fetch(event.request).then((networkResponse) => {
-        // Update cache if valid response
-        if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
+        // Verifica se a resposta é válida para cachear
+        if (networkResponse && networkResponse.status === 200) {
+          // Clona a resposta pois ela só pode ser consumida uma vez
           const responseToCache = networkResponse.clone();
           caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, responseToCache);
+             // Cacheia silenciosamente
+             try {
+                cache.put(event.request, responseToCache);
+             } catch (err) {
+                console.warn('Falha ao atualizar cache runtime:', err);
+             }
           });
         }
         return networkResponse;
-      }).catch(() => {
-        // If network fails, return nothing (cachedResponse will be used)
+      }).catch((err) => {
+        // Se falhar a rede (Offline)
+        // Se for navegação (HTML), tenta retornar o index.html (SPA Fallback)
+        if (event.request.mode === 'navigate') {
+          return caches.match('/index.html');
+        }
+        // Se não tiver cache e rede falhar, retorna nada (browser trata erro)
       });
 
+      // Retorna o cache se existir, senão espera a rede
       return cachedResponse || fetchPromise;
-    }).catch(() => {
-      // Fallback for navigation (SPA offline support)
-      if (event.request.mode === 'navigate') {
-        return caches.match('/index.html');
-      }
     })
   );
 });
