@@ -20,7 +20,10 @@ interface AppContextType {
   toggleTask: (id: string) => Promise<void>;
   
   addProject: (p: Omit<Project, 'id'>) => Promise<void>;
+  deleteProject: (id: string) => Promise<void>;
+  
   addCard: (c: Omit<CreditCard, 'id'>) => Promise<void>;
+  deleteCard: (id: string) => Promise<void>;
 
   chartData: ChartDataPoint[];
   setPeriod: (period: '1S' | '1M' | '1A') => void;
@@ -299,6 +302,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
      if (data) setProjects(prev => [data, ...prev]);
   };
 
+  const deleteProject = async (id: string) => {
+      setProjects(prev => prev.filter(p => p.id !== id));
+      // Remove project association from tasks locally
+      setTasks(prev => prev.map(t => t.projectId === id ? { ...t, projectId: undefined } : t));
+      await supabase.from('projects').delete().eq('id', id);
+  };
+
   const addCard = async (c: Omit<CreditCard, 'id'>) => {
       if (!session) return;
       const newCard = {
@@ -322,6 +332,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             lastDigits: data.last_digits
           }, ...prev]);
       }
+  };
+
+  const deleteCard = async (id: string) => {
+      setCards(prev => prev.filter(c => c.id !== id));
+      // Remove card association from transactions locally if needed, but keeping history is safer.
+      // We will let backend handle constraints or keep history.
+      await supabase.from('credit_cards').delete().eq('id', id);
   };
 
   const addTask = async (t: Omit<Task, 'id'>) => {
@@ -404,13 +421,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       transactions, tasks, projects, cards,
       addTransaction, deleteTransaction, payCardInvoice,
       addTask, updateTask, deleteTask, toggleTask,
-      addProject, addCard,
+      addProject, deleteProject, 
+      addCard, deleteCard,
       chartData, setPeriod, currentPeriod, 
       userProfile, updateUserProfile,
       isModalOpen, modalType, openModal, closeModal,
       pendingAudio, setPendingAudio,
       session, signOut, loading,
-      refreshData: fetchData // Export fetch data as refreshData
+      refreshData: fetchData 
     }}>
       {children}
     </AppContext.Provider>

@@ -3,42 +3,61 @@ import React, { useState } from 'react';
 import FloatingNav from '../components/FloatingNav';
 import Header from '../components/Header';
 import Icon from '../components/Icon';
-import ActionModal from '../components/ActionModal'; // Ensure modal is available if needed locally
+import ActionModal from '../components/ActionModal'; 
 import { AreaChart, Area, ResponsiveContainer } from 'recharts';
 import { useAppContext } from '../context/AppContext';
 
 const Finance: React.FC = () => {
-    const { transactions, chartData, currentPeriod, setPeriod, deleteTransaction, cards, openModal } = useAppContext();
+    const { transactions, chartData, currentPeriod, setPeriod, deleteTransaction, cards, openModal, payCardInvoice, deleteCard } = useAppContext();
     const [view, setView] = useState<'General' | 'Cards'>('General');
     const [filter, setFilter] = useState<'Gastos' | 'Ganhos'>('Gastos');
     const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
+    const [isPaying, setIsPaying] = useState(false);
 
     const formatCurrency = (val: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
 
     // --- REAL CALCULATIONS ---
-    
-    // 1. Available Balance (Pix/Cash Income - Pix/Cash Expense) - Doesn't count credit card debt yet
     const cashIncome = transactions.filter(t => t.type === 'income').reduce((acc, t) => acc + t.amount, 0);
     const cashExpense = transactions.filter(t => t.type === 'expense' && t.paymentMethod !== 'credit_card').reduce((acc, t) => acc + t.amount, 0);
     const availableBalance = cashIncome - cashExpense;
 
-    // 2. Filter Transactions for List
     const displayedTransactions = transactions.filter(t => {
         if (view === 'Cards') {
-            if (selectedCardId) return t.cardId === selectedCardId && !t.isPaid; // Show only open invoice items
+            if (selectedCardId) return t.cardId === selectedCardId && !t.isPaid; 
             return t.paymentMethod === 'credit_card' && !t.isPaid;
         }
-        // In General view, show everything
         return filter === 'Gastos' ? t.type === 'expense' : t.type === 'income';
     });
 
     const selectedCard = cards.find(c => c.id === selectedCardId);
     
-    // Calculate Card Invoice (Only unpaid expenses)
     const getCardInvoice = (cardId: string) => {
         return transactions
             .filter(t => t.cardId === cardId && t.type === 'expense' && !t.isPaid)
             .reduce((acc, t) => acc + t.amount, 0);
+    };
+
+    const handlePayInvoice = async () => {
+        if (!selectedCardId) return;
+        if (window.confirm(`Deseja confirmar o pagamento da fatura de ${selectedCard?.name}?`)) {
+            setIsPaying(true);
+            try {
+                await payCardInvoice(selectedCardId);
+                alert("Fatura paga com sucesso!");
+            } catch (e) {
+                alert("Erro ao processar pagamento.");
+            } finally {
+                setIsPaying(false);
+            }
+        }
+    };
+
+    const handleDeleteCard = async () => {
+        if (!selectedCardId) return;
+        if (window.confirm(`Tem certeza que deseja excluir o cartão ${selectedCard?.name}? Isso não apagará o histórico de transações.`)) {
+            await deleteCard(selectedCardId);
+            setSelectedCardId(null);
+        }
     };
 
     return (
@@ -141,7 +160,6 @@ const Finance: React.FC = () => {
                         <div className="w-full animate-fade-in-up">
                             {/* Card List Horizontal Scroll */}
                             <div className="flex gap-4 overflow-x-auto pb-4 mb-6 scrollbar-hide snap-x">
-                                {/* Add Card Button - REDESIGNED */}
                                 <button 
                                     onClick={() => openModal('card')}
                                     className="min-w-[60px] h-[180px] rounded-2xl border border-dashed border-white/20 flex flex-col items-center justify-center gap-3 hover:bg-white/5 transition-all text-slate-400 hover:text-white snap-start"
@@ -178,7 +196,6 @@ const Finance: React.FC = () => {
                                                         <p className="text-xl font-bold text-white shadow-sm">{formatCurrency(invoice)}</p>
                                                     </div>
                                                 </div>
-                                                {/* Progress Bar */}
                                                 <div className="w-full bg-black/30 h-1.5 rounded-full mb-2 overflow-hidden backdrop-blur-sm">
                                                     <div 
                                                         className={`h-full rounded-full transition-all duration-500 ${available < 0 ? 'bg-red-400' : 'bg-white/90'}`}
@@ -197,10 +214,30 @@ const Finance: React.FC = () => {
 
                             {/* Transactions for Selected Card */}
                             {selectedCardId && (
-                                <div className="bg-[#1a222e] rounded-2xl border border-white/5 p-4 animate-fade-in-up">
+                                <div className="bg-[#1a222e] rounded-2xl border border-white/5 p-4 animate-fade-in-up relative">
                                     <div className="flex justify-between items-center mb-4">
-                                        <h3 className="font-bold text-white">Fatura de {selectedCard?.name}</h3>
-                                        <span className="text-xs text-slate-400">Fecha dia {selectedCard?.closingDay}</span>
+                                        <div>
+                                            <h3 className="font-bold text-white">Fatura de {selectedCard?.name}</h3>
+                                            <span className="text-xs text-slate-400">Fecha dia {selectedCard?.closingDay}</span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            {getCardInvoice(selectedCardId) > 0 && (
+                                                <button 
+                                                    onClick={handlePayInvoice}
+                                                    disabled={isPaying}
+                                                    className="bg-primary/20 hover:bg-primary/30 text-primary border border-primary/50 px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-2 transition-all"
+                                                >
+                                                    <Icon name={isPaying ? "hourglass_empty" : "payments"} className="text-sm" />
+                                                    {isPaying ? "Pagando..." : "Pagar Fatura"}
+                                                </button>
+                                            )}
+                                            <button 
+                                                onClick={handleDeleteCard}
+                                                className="bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/30 px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-2 transition-all"
+                                            >
+                                                <Icon name="delete" className="text-sm" />
+                                            </button>
+                                        </div>
                                     </div>
                                     <div className="space-y-3">
                                         {displayedTransactions.length === 0 ? (

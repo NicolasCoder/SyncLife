@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import FloatingNav from '../components/FloatingNav';
 import Header from '../components/Header';
@@ -7,7 +8,7 @@ import { useAppContext } from '../context/AppContext';
 import { Task } from '../types';
 
 const Tasks: React.FC = () => {
-    const { tasks, toggleTask, openModal, projects } = useAppContext();
+    const { tasks, toggleTask, openModal, projects, deleteProject } = useAppContext();
     const [view, setView] = useState<'Dia' | 'Semana' | 'Mês' | 'Todos'>('Dia');
     const [groupByProject, setGroupByProject] = useState(false);
     const [selectedDate, setSelectedDate] = useState(new Date());
@@ -133,6 +134,12 @@ const Tasks: React.FC = () => {
         if (p === 3) return 'Prioridade Baixa';
         return '';
     };
+
+    const handleDeleteProject = async (id: string, name: string) => {
+        if(window.confirm(`Excluir projeto "${name}"? As tarefas perderão o vínculo com o projeto.`)) {
+            await deleteProject(id);
+        }
+    }
 
     return (
         <div className="bg-background-light dark:bg-background-dark min-h-screen text-slate-900 dark:text-white overflow-hidden flex flex-col w-full h-full">
@@ -277,6 +284,12 @@ const Tasks: React.FC = () => {
                                                     <img src={group.project.logo} className="w-full h-full object-contain opacity-80" />
                                                 </div>
                                                 <h3 className="text-white font-semibold text-sm">{group.project.name}</h3>
+                                                <button 
+                                                    onClick={() => handleDeleteProject(group.project.id, group.project.name)}
+                                                    className="ml-auto text-slate-500 hover:text-red-500 p-1"
+                                                >
+                                                    <Icon name="delete" className="text-sm" />
+                                                </button>
                                             </>
                                         ) : (
                                             <h3 className="text-slate-400 font-semibold text-sm ml-1">Sem Projeto</h3>

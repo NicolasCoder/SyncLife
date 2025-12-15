@@ -10,7 +10,7 @@
     <link rel="manifest" href="/manifest.json" />
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/16541/16541906.png">
     
-    <!-- Tailwind CSS (CDN para prototipagem rápida, conforme setup atual) -->
+    <!-- Tailwind CSS (CDN para funcionamento sem build step) -->
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     
     <!-- Tailwind Config -->
@@ -60,6 +60,7 @@
             overscroll-behavior-y: none; /* Prevent pull-to-refresh on mobile app feel */
             background-color: #101722; /* Ensure background is dark even if Tailwind fails */
             color: white;
+            -webkit-tap-highlight-color: transparent;
         }
         /* Custom scrollbar */
         ::-webkit-scrollbar {
@@ -90,12 +91,6 @@
             -webkit-backdrop-filter: blur(12px);
             border: 1px solid rgba(255, 255, 255, 0.05);
         }
-        .bottom-nav-blur {
-            background: rgba(15, 17, 21, 0.85);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border-top: 1px solid rgba(255, 255, 255, 0.05);
-        }
         
         /* Material Symbols Utility */
         .material-symbols-outlined {
@@ -115,11 +110,12 @@
     </style>
     
     <script>
-        if ('serviceWorker' in navigator) {
+        if ('serviceWorker' in navigator && window.location.protocol.startsWith('http')) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw.js')
-                    .then(reg => console.log('SW registered'))
-                    .catch(err => console.log('SW failed', err));
+                // Using relative path './sw.js' ensures scope is correct even in subdirectories
+                navigator.serviceWorker.register('./sw.js')
+                    .then(reg => console.log('SW registrado com sucesso. Scope:', reg.scope))
+                    .catch(err => console.error('Erro ao registrar SW:', err));
             });
         }
     </script>
