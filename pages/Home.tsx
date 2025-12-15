@@ -15,15 +15,16 @@ interface ChatMessage {
 }
 
 // --- INIT GEMINI ---
-// Tenta ler VITE_API_KEY (Padrão Vite) ou API_KEY (Fallback)
-// O uso de 'as any' previne erros de TypeScript se os tipos do Vite não estiverem carregados
-const apiKey = (import.meta as any).env?.VITE_API_KEY || (import.meta as any).env?.API_KEY || '';
+// Leitura segura da variável de ambiente no Vite
+const apiKey = (import.meta as any).env?.VITE_API_KEY || '';
 
-if (!apiKey) {
-    console.error("ERRO CRÍTICO: API Key do Gemini não encontrada. Verifique as variáveis de ambiente (VITE_API_KEY).");
+// Inicialização segura - se não tiver chave, não quebra o app inteiro, apenas o chat falha.
+let ai: GoogleGenAI | null = null;
+if (apiKey) {
+    ai = new GoogleGenAI({ apiKey: apiKey });
+} else {
+    console.warn("Gemini API Key ausente. O chat não funcionará.");
 }
-
-const ai = new GoogleGenAI({ apiKey: apiKey });
 
 // Helper for Base64 conversion
 const blobToBase64 = (blob: Blob): Promise<string> => {
@@ -107,7 +108,11 @@ const Home: React.FC = () => {
                     
                     // Initialize chat if not exists (Voice command opens chat)
                     if (!chatSessionRef.current) initChat();
-                    const session = chatSessionRef.current!;
+                    const session = chatSessionRef.current;
+                    
+                    if (!session) {
+                        throw new Error("Chat indisponível (API Key inválida?)");
+                    }
 
                     // Send audio to Gemini
                     let response = await session.sendMessage({
@@ -128,7 +133,7 @@ const Home: React.FC = () => {
 
                 } catch (error) {
                     console.error("Audio processing error:", error);
-                    addMessage('system', "Erro ao processar áudio. Tente novamente.");
+                    addMessage('system', "Erro ao processar áudio. Verifique sua conexão ou a chave de API.");
                 } finally {
                     setIsTyping(false);
                     setPendingAudio(null); // Clear queue
@@ -201,6 +206,11 @@ const Home: React.FC = () => {
     // --- AI LOGIC ---
 
     const initChat = () => {
+        if (!ai) {
+            addMessage('system', 'Erro: API Key não configurada no Netlify.');
+            return;
+        }
+
         const now = new Date();
         const fullDate = now.toLocaleDateString('pt-BR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
         const isoDate = now.toISOString().split('T')[0];
@@ -372,11 +382,15 @@ const Home: React.FC = () => {
         try {
             // Ensure session exists
             if (!chatSessionRef.current) initChat();
-            const session = chatSessionRef.current!;
+            const session = chatSessionRef.current;
             
-            // Send text to existing session (preserving context)
-            let response = await session.sendMessage({ message: text });
-            await handleModelResponse(session, response);
+            if (session) {
+                 // Send text to existing session (preserving context)
+                let response = await session.sendMessage({ message: text });
+                await handleModelResponse(session, response);
+            } else {
+                addMessage('system', "Erro: Chat não inicializado. Verifique a API Key.");
+            }
 
         } catch (error) {
             console.error("AI Error:", error);
