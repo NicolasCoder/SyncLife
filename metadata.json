@@ -1,0 +1,7 @@
+{
+  "name": "SyncLife",
+  "description": "A personal dashboard for tracking finance, tasks, and quick logs with an AI-enhanced aesthetic.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}

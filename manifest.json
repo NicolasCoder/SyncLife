@@ -1,0 +1,21 @@
+{
+  "short_name": "SyncLife",
+  "name": "SyncLife Personal Dashboard",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/16541/16541906.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/16541/16541906.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#101722",
+  "background_color": "#101722",
+  "orientation": "portrait"
+}
